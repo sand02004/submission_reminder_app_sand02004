@@ -1,62 +1,107 @@
 #!/bin/bash
 
-# Ask for user's name
-echo -n "Enter your name: "
-read userName
+# Prompt user for their name
+echo "Enter your name:"
+read user_name
 
-# Define the base directory with user's name
-BASE_DIR="submission_reminder_${userName}"
+# Define the main directory
+dir_name="submission_reminder_${user_name}"
 
-# Define the required directories
-DIRS=(
-    "$BASE_DIR/app"
-    "$BASE_DIR/config"
-    "$BASE_DIR/modules"
-    "$BASE_DIR/assets"
-)
+# Create the main directory
+mkdir -p "$dir_name"/{app,modules,assets,config}
 
-# Define the required files and their locations
-FILES=(
-    "$BASE_DIR/assets/submissions.txt"
-    "$BASE_DIR/config/config.env"
-    "$BASE_DIR/app/reminder.sh"
-    "$BASE_DIR/modules/functions.sh"
-    "$BASE_DIR/startup.sh"
-)
+# Create required files
+touch "$dir_name/app/reminder.sh"
+touch "$dir_name/modules/functions.sh"
+touch "$dir_name/assets/submissions.txt"
+touch "$dir_name/config/config.env"
+touch "$dir_name/startup.sh"
 
-# Create directories
-for dir in "${DIRS[@]}"; do
-    if [ ! -d "$dir" ]; then
-        mkdir -p "$dir"
-        echo "Created directory: $dir"
-    else
-        echo "Directory already exists: $dir"
-    fi
-done
+# Populate submissions.txt with sample records
+cat << EOF > "$dir_name/assets/submissions.txt"
+Student,Assignment,Submission Status
+Chinemerem,Shell Navigation,Not Submitted
+Chiagoziem,Git,Submitted
+Divine,Shell Navigation,Not Submitted
+Anissa,Shell Basics,Submitted
+Kamali Shell Navigation,Submitted
+Keza, Shell Navigation,Submitted
+John, Shell Navigation, Not Submitted
+Ruth,Shell Navigation, Not Submitted 
+Joy, Shell Nvigation, Not Submitted
+EOF
 
-# Create empty files
-for file in "${FILES[@]}"; do
-    if [ ! -f "$file" ]; then
-        touch "$file"
-        echo "Created file: $file"
-    else
-        echo "File already exists: $file"
-    fi
-done
+# Populate functions.sh with logic to check submissions
+cat << EOF > "$dir_name/modules/functions.sh"
+#!/bin/bash
 
-# Populate submissions.txt with sample data
-echo -e "StudentID,Name,Assignment,Deadline,Status" > "$BASE_DIR/assets/submissions.txt"
-echo -e "001,John Doe,Math,2024-02-20,Pending" >> "$BASE_DIR/assets/submissions.txt"
-echo -e "002,Jane Smith,Science,2024-02-22,Submitted" >> "$BASE_DIR/assets/submissions.txt"
-echo -e "003,Mark Lee,History,2024-02-25,Pending" >> "$BASE_DIR/assets/submissions.txt"
-echo -e "004,Susan Brown,English,2024-02-18,Submitted" >> "$BASE_DIR/assets/submissions.txt"
-echo -e "005,Tom Hanks,Physics,2024-02-27,Pending" >> "$BASE_DIR/assets/submissions.txt"
+# Function to read submissions file and output students who have not submitted
+function check_submissions {
+    local submissions_file=\$1
+    echo "Checking submissions in \$submissions_file"
 
-echo "Populated submissions.txt with sample student records."
+    # Skip the header and iterate through the lines
+    while IFS=, read -r student assignment status; do
+        # Remove leading and trailing whitespace
+        student=\$(echo "\$student" | xargs)
+        assignment=\$(echo "\$assignment" | xargs)
+        status=\$(echo "\$status" | xargs)
 
-# Set executable permissions for script files
-chmod +x "$BASE_DIR/app/reminder.sh"
-chmod +x "$BASE_DIR/modules/functions.sh"
-chmod +x "$BASE_DIR/startup.sh"
+        # Check if assignment matches and status is 'Not Submitted'
+        if [[ "\$assignment" == "\$ASSIGNMENT" && "\$status" == "Not Submitted" ]]; then
+            echo "Reminder: \$student has not submitted the \$ASSIGNMENT assignment!"
+        fi
+    done < <(tail -n +2 "\$submissions_file") # Skip the header
+}
+EOF
+# Make functions.sh executable
+chmod +x "$dir_name/modules/functions.sh"
 
-echo "Environment setup complete."
+# Populate reminder.sh with script logic
+cat << EOF > "$dir_name/app/reminder.sh"
+#!/bin/bash
+
+# Source environment variables and helper functions
+source ./config/config.env
+source ./modules/functions.sh
+
+# Path to the submissions file
+submissions_file="./assets/submissions.txt"
+
+# Print remaining time and run the reminder function
+echo "Assignment: \$ASSIGNMENT"
+echo "Days remaining to submit: \$DAYS_REMAINING days"
+echo "--------------------------------------------"
+
+check_submissions \$submissions_file
+EOF
+
+# Make reminder.sh executable
+chmod +x "$dir_name/app/reminder.sh"
+
+
+# Populate config.env with environment variables
+cat << EOF > "$dir_name/config/config.env"
+# This is the config file
+ASSIGNMENT="Shell Navigation"
+DAYS_REMAINING=2
+EOF
+
+# Populate startup.sh with logic to start the reminder app
+cat << EOF > "$dir_name/startup.sh"
+#!/bin/bash
+
+# Navigate to the app directory
+cd "\$(dirname "\$0")"
+
+# Run the reminder script
+bash app/reminder.sh
+EOF
+
+# Make the startup script executable
+chmod +x "$dir_name/startup.sh"
+
+# Notify user of completion
+echo "Environment setup completed successfully in $dir_name"
+cd $dir_name
+./startup.sh

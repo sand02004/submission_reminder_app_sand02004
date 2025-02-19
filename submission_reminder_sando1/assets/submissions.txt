@@ -1,9 +1,0 @@
-StudentID,Name,Assignment,Deadline,Status
-John, Math, not submitted
-Jane, Science, Submitted
-Mark, History, not submitted
-Susan, English, Submitted
-Tom, Physics, not submitted
-Chinemerem, Shell Navigation, not submitted
-Chiagoziem, Git, Submitted
-Divine, Shell Navigation, not submitted
